@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prédiction de Séries Temporelles - ARIMA</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/css/style.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Time Series Forecasting
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <div class="text-center mb-5">
+                    <h1 class="display-4 text-primary">
+                        <i class="fas fa-plane me-3"></i>
+                        Prédiction du Trafic Aérien
+                    </h1>
+                    <p class="lead text-muted">
+                        Utilisez notre modèle ARIMA pour prédire le nombre de passagers aériens
+                    </p>
+                </div>
+
+                <!-- Statut du modèle -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Statut du Modèle
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if model_loaded %}
+                            <div class="alert alert-success" role="alert">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <strong>Modèle chargé avec succès!</strong>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Type:</strong> {{ model_info.model_type }}</p>
+                                    <p><strong>Ordre:</strong> {{ model_info.order }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Ordre saisonnier:</strong> {{ model_info.seasonal_order }}</p>
+                                    <p><strong>Points de données:</strong> {{ model_info.data_points }}</p>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning" role="alert">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>Modèle non chargé!</strong>
+                                <br>
+                                Veuillez exécuter le script d'entraînement: 
+                                <code>python scripts/train_model.py</code>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Formulaire de prédiction -->
+                {% if model_loaded %}
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-upload me-2"></i>
+                            Uploader vos propres données (Optionnel)
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="/upload-csv" method="post" enctype="multipart/form-data" id="uploadForm">
+                            <div class="mb-3">
+                                <label for="csv_file" class="form-label">
+                                    <i class="fas fa-file-csv me-2"></i>
+                                    Fichier CSV de vos données temporelles
+                                </label>
+                                <input type="file" class="form-control" id="csv_file" name="csv_file" 
+                                       accept=".csv" required>
+                                <div class="form-text">
+                                    Format attendu: 2 colonnes (Date, Valeur). Exemple: "Date,Passengers" ou "Month,Sales"
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-success btn-lg" id="uploadBtn">
+                                    <i class="fas fa-upload me-2"></i>
+                                    Analyser mes données
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <hr class="my-4">
+                        <p class="text-center text-muted">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Ou utilisez les données d'exemple ci-dessous
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-magic me-2"></i>
+                            Générer des Prédictions (Données d'exemple)
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form action="/forecast" method="post" id="forecastForm">
+                            <div class="mb-3">
+                                <label for="steps" class="form-label">
+                                    <i class="fas fa-calendar-alt me-2"></i>
+                                    Nombre de mois à prédire
+                                </label>
+                                <input type="number" class="form-control" id="steps" name="steps" 
+                                       value="12" min="1" max="60" required>
+                                <div class="form-text">
+                                    Entrez un nombre entre 1 et 60 mois
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary btn-lg" id="predictBtn">
+                                    <i class="fas fa-chart-line me-2"></i>
+                                    Générer les Prédictions
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Information sur le dataset -->
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-database me-2"></i>
+                            À propos du Dataset
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p>
+                            Ce modèle utilise le célèbre dataset "Air Passengers" qui contient 
+                            les données mensuelles du nombre de passagers aériens de 1949 à 1960.
+                        </p>
+                        <ul>
+                            <li><strong>Période:</strong> Janvier 1949 - Décembre 1960</li>
+                            <li><strong>Fréquence:</strong> Mensuelle</li>
+                            <li><strong>Modèle:</strong> SARIMAX (1,1,1)(1,1,1,12)</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-light py-4 mt-5">
+        <div class="container text-center">
+            <p class="text-muted mb-0">
+                <i class="fas fa-code me-2"></i>
+                Développé avec FastAPI et ARIMA
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/main.js"></script>
+    
+    <script>
+        // Animation du bouton de prédiction
+        document.getElementById('forecastForm').addEventListener('submit', function() {
+            const btn = document.getElementById('predictBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Génération en cours...';
+            btn.disabled = true;
+        });
+        
+        // Animation du bouton d'upload
+        document.getElementById('uploadForm').addEventListener('submit', function() {
+            const btn = document.getElementById('uploadBtn');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyse en cours...';
+            btn.disabled = true;
+        });
+        
+        // Validation du fichier CSV
+        document.getElementById('csv_file').addEventListener('change', function() {
+            const file = this.files[0];
+            const uploadBtn = document.getElementById('uploadBtn');
+            
+            if (file) {
+                if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+                    alert('Veuillez sélectionner un fichier CSV valide.');
+                    this.value = '';
+                    uploadBtn.disabled = true;
+                    return;
+                }
+                
+                if (file.size > 5 * 1024 * 1024) { // 5MB max
+                    alert('Le fichier est trop volumineux. Taille maximum: 5MB.');
+                    this.value = '';
+                    uploadBtn.disabled = true;
+                    return;
+                }
+                
+                uploadBtn.disabled = false;
+            } else {
+                uploadBtn.disabled = true;
+            }
+        });
+    </script>
+</body>
+</html>
